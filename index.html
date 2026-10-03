@@ -3,8 +3,8 @@ export default {
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MAYAJAAL ONLINE // OFFICIAL BOT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,10 +13,8 @@ export default {
     :root {
       --neon-green: #00ff87;
       --neon-cyan: #60efff;
-      --neon-glow: rgba(0, 255, 135, 0.35);
-      --bg-dark: #030806;
-      --card-bg: rgba(6, 18, 12, 0.75);
-      --border-cyan: rgba(0, 255, 135, 0.3);
+      --card-bg: rgba(6, 18, 12, 0.85);
+      --border-cyan: rgba(0, 255, 135, 0.35);
       --border-glow: 0 0 15px rgba(0, 255, 135, 0.25);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,7 +27,6 @@ export default {
       flex-direction: column;
       align-items: center;
       padding: 0.8rem;
-      overflow-x: hidden;
     }
     nav {
       width: 100%; max-width: 500px; display: flex; align-items: center;
@@ -44,7 +41,7 @@ export default {
       padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; color: var(--neon-green); font-weight: 700;
     }
     .status-dot { width: 7px; height: 7px; background: var(--neon-green); border-radius: 50%; box-shadow: 0 0 8px var(--neon-green); }
-    .hero { text-align: center; margin-bottom: 1.5rem; position: relative; }
+    .hero { text-align: center; margin-bottom: 1.5rem; }
     .cloud-icon { font-size: 3rem; color: var(--neon-green); filter: drop-shadow(0 0 18px var(--neon-green)); margin-bottom: 0.3rem; }
     .hero-title { font-family: 'Orbitron', sans-serif; font-size: 2rem; font-weight: 900; letter-spacing: 3px; color: #ffffff; text-shadow: 0 0 20px rgba(0, 255, 135, 0.6); line-height: 1.1; }
     .hero-sub { color: var(--neon-green); font-size: 1.4rem; margin-top: 0.2rem; text-shadow: 0 0 15px var(--neon-green); }
@@ -58,7 +55,7 @@ export default {
     .container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 1.4rem; }
     .panel {
       background: var(--card-bg); border: 1px solid var(--border-cyan); box-shadow: var(--border-glow);
-      border-radius: 16px; padding: 1.2rem; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border-radius: 16px; padding: 1.2rem; backdrop-filter: blur(10px);
     }
     .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
     .header-left { display: flex; align-items: center; gap: 0.6rem; }
@@ -251,7 +248,7 @@ export default {
     }
   </script>
 </body>
-</html>\`;
+</html>`;
 
     return new Response(html, {
       headers: { 
