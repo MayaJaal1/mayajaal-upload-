@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>मायाJAAL // SYSTEM_STREAM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --matrix-green: #00ff66;
+      --matrix-dark: #003b15;
+      --bg-black: #050805;
+      --card-bg: rgba(0, 20, 5, 0.85);
+      --border-glow: 0 0 10px #00ff66, inset 0 0 5px #00ff66;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    body {
+      background-color: var(--bg-black);
+      color: var(--matrix-green);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: " ";
+      position: fixed;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), 
+                  linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      z-index: 100;
+      background-size: 100% 3px, 6px 100%;
+      pointer-events: none;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      letter-spacing: 4px;
+      text-shadow: 0 0 12px var(--matrix-green);
+      text-transform: uppercase;
+    }
+
+    header p {
+      color: #00aa44;
+      font-size: 0.85rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      display: grid;
+      gap: 1.5rem;
+      z-index: 10;
+    }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--matrix-green);
+      box-shadow: var(--border-glow);
+      padding: 1.2rem;
+      border-radius: 4px;
+    }
+
+    .panel-header {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px dashed var(--matrix-green);
+      padding-bottom: 0.4rem;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid var(--matrix-dark);
+      color: #00aa44;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .tab-btn.active {
+      border-color: var(--matrix-green);
+      color: var(--matrix-green);
+      box-shadow: 0 0 8px var(--matrix-green);
+    }
+
+    .input-box {
+      width: 100%;
+      background: #001205;
+      border: 1px solid var(--matrix-green);
+      padding: 0.8rem;
+      color: var(--matrix-green);
+      font-size: 0.95rem;
+      outline: none;
+      margin-bottom: 1rem;
+    }
+
+    .btn {
+      background: var(--matrix-green);
+      color: #000;
+      border: none;
+      padding: 0.75rem 1.4rem;
+      font-weight: bold;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.2s ease;
+      display: inline-block;
+      text-align: center;
+      text-decoration: none;
+      width: 100%;
+    }
+
+    .btn:hover {
+      background: #fff;
+      box-shadow: 0 0 15px #fff;
+    }
+
+    .progress-wrap {
+      width: 100%;
+      background: #00220a;
+      border: 1px solid var(--matrix-green);
+      height: 18px;
+      margin: 1rem 0;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--matrix-green);
+      width: 0%;
+      box-shadow: 0 0 8px var(--matrix-green);
+      transition: width 0.1s;
+    }
+
+    .player-box {
+      width: 100%;
+      background: #000;
+      border: 1px solid var(--matrix-green);
+      min-height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0.5rem;
+    }
+
+    video {
+      width: 100%;
+      max-height: 420px;
+      outline: none;
+    }
+
+    .action-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+      flex-direction: column;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>मायाJAAL // SYSTEM</h1>
+    <p>[ CLOUDFLARE DIRECT UPLOAD ENGINE ]</p>
+  </header>
+
+  <div class="container">
+    <div class="panel">
+      <div class="panel-header">
+        <span>> EXECUTE_UPLOAD.EXE</span>
+        <span id="status-tag">STATUS: IDLE</span>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('file')">FILE UPLOAD</button>
+        <button class="tab-btn" onclick="switchTab('url')">LINK IMPORT</button>
+      </div>
+
+      <div id="file-mode">
+        <input type="file" id="local-file" class="input-box" accept="video/*,audio/*" />
+        <button class="btn" onclick="uploadLocal()">Upload File</button>
+      </div>
+
+      <div id="url-mode" style="display: none;">
+        <input type="url" id="remote-url" class="input-box" placeholder="https://example.com/video.mp4" />
+        <button class="btn" onclick="importFromURL()">Play Direct Link</button>
+      </div>
+
+      <div class="progress-wrap" id="progress-wrapper">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <div id="log" style="font-size: 0.85rem; margin-top: 0.6rem;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span>> TERMINAL_RENDERER</span>
+        <span id="media-id">BUFFER: EMPTY</span>
+      </div>
+
+      <div class="player-box" id="player-container">
+        <video id="cyber-player" controls style="display:none;"></video>
+        <span id="idle-text">// NO ACTIVE MEDIA SIGNAL DETECTED</span>
+      </div>
+
+      <div class="action-row">
+        <span id="file-meta">CODEC: NONE</span>
+        <a id="download-btn" class="btn" style="display: none;" download>DOWNLOAD FILE</a>
+      </div>
+    </div>
+  </div>
+    <script>
+    function switchTab(mode) {
+      const fileMode = document.getElementById('file-mode');
+      const urlMode = document.getElementById('url-mode');
+      const tabs = document.querySelectorAll('.tab-btn');
+      
+      if (mode === 'file') {
+        fileMode.style.display = 'block';
+        urlMode.style.display = 'none';
+        tabs[0].classList.add('active');
+        tabs[1].classList.remove('active');
+      } else {
+        fileMode.style.display = 'none';
+        urlMode.style.display = 'block';
+        tabs[1].classList.add('active');
+        tabs[0].classList.remove('active');
+      }
+    }
+
+    function setStatus(text, isError = false) {
+      const log = document.getElementById('log');
+      const statusTag = document.getElementById('status-tag');
+      log.innerText = `>> ${text}`;
+      log.style.color = isError ? '#ff3333' : '#00ff66';
+      statusTag.innerText = `STATUS: ${text.toUpperCase()}`;
+    }
+
+    async function uploadLocal() {
+      const fileInput = document.getElementById('local-file');
+      const file = fileInput.files[0];
+      if (!file) return setStatus("ERROR: Pehle file select karein", true);
+
+      setStatus("UPLOADING TO STORAGE...");
+      
+      const progressWrapper = document.getElementById('progress-wrapper');
+      const progressBar = document.getElementById('progress-bar');
+      progressWrapper.style.display = 'block';
+
+      const xhr = new XMLHttpRequest();
+      // Yahan Cloudflare Stream/R2 ka direct upload link set hota hai
+      xhr.open("POST", "YOUR_CLOUDFLARE_UPLOAD_URL", true);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          progressBar.style.width = percent + '%';
+          setStatus(`UPLOADING STREAM: ${percent}%`);
+        }
+      };
+
+      xhr.onload = () => {
+        setStatus("UPLOAD COMPLETE // SYNCED");
+        initPlayer(URL.createObjectURL(file), file.name);
+      };
+
+      xhr.onerror = () => {
+        setStatus("LOADED IN LOCAL PLAYER");
+        initPlayer(URL.createObjectURL(file), file.name);
+      };
+
+      const formData = new FormData();
+      formData.append("file", file);
+      xhr.send(formData);
+    }
+
+    function importFromURL() {
+      const url = document.getElementById('remote-url').value;
+      if (!url) return setStatus("ERROR: Sahi URL link daalein", true);
+
+      setStatus("FETCHING REMOTE STREAM...");
+      initPlayer(url, "DIRECT_STREAM_LINK");
+      setStatus("PLAYBACK INITIALIZED");
+    }
+
+    function initPlayer(source, filename) {
+      const player = document.getElementById('cyber-player');
+      const idleText = document.getElementById('idle-text');
+      const downloadBtn = document.getElementById('download-btn');
+      const mediaId = document.getElementById('media-id');
+      const meta = document.getElementById('file-meta');
+
+      idleText.style.display = 'none';
+      player.style.display = 'block';
+      player.src = source;
+      player.play();
+
+      mediaId.innerText = `FEED: ${filename}`;
+      meta.innerText = `SOURCE: ${source.substring(0, 25)}...`;
+
+      downloadBtn.style.display = 'block';
+      downloadBtn.href = source;
+      downloadBtn.download = filename || "mayajaal_media.mp4";
+    }
+  </script>
+</body>
+</html>
