@@ -2,18 +2,21 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // 1. Direct App Stream Route (Aapke domain ka link jisse app open hota hai)
-    if (url.pathname === '/stream' || url.pathname === '/play') {
-      const targetUrl = url.searchParams.get('url');
-      if (!targetUrl) {
-        return new Response("No video link specified", { status: 400 });
+    // 1. Agar koi browser mein /v/... link khole (fallback redirect to app or stream)
+    if (url.pathname.startsWith('/v/')) {
+      const videoId = url.pathname.replace('/v/', '');
+      const stream = url.searchParams.get('stream');
+
+      // Agar stream param saath mein hai toh video stream karein
+      if (stream) {
+        return Response.redirect(decodeURIComponent(stream), 302);
       }
 
-      // App ya browser ko video stream par redirect karega
-      return Response.redirect(targetUrl, 302);
+      // App download fallback
+      return Response.redirect('https://mayajaal.online/download.html?v=4', 302);
     }
 
-    // 2. Terabox Resolver API
+    // 2. Terabox Link Resolver & Short ID Engine
     if (url.pathname === '/api/resolve') {
       const targetUrl = url.searchParams.get('url');
       if (!targetUrl) {
@@ -40,31 +43,39 @@ export default {
           streamUrl = targetUrl;
         }
 
+        // Generate 8-character hex ID (e.g. bedf1d12)
+        const randomId = Math.random().toString(16).substring(2, 10);
+
         return new Response(JSON.stringify({ 
           success: true, 
           streamUrl: streamUrl, 
-          fileName: fileName 
+          fileName: fileName,
+          videoId: randomId,
+          appDeepLink: `https://mayajaal.online/v/${randomId}`
         }), {
           headers: { 'content-type': 'application/json' }
         });
       } catch (err) {
+        const randomId = Math.random().toString(16).substring(2, 10);
         return new Response(JSON.stringify({ 
           success: true, 
           streamUrl: targetUrl, 
-          fileName: 'Mayajaal_Stream.mp4' 
+          fileName: 'Mayajaal_Stream.mp4',
+          videoId: randomId,
+          appDeepLink: `https://mayajaal.online/v/${randomId}`
         }), {
           headers: { 'content-type': 'application/json' }
         });
       }
     }
 
-    // 3. Frontend Web Interface
+    // 3. Frontend Web Page
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MAYAJAAL ONLINE // OFFICIAL BOT</title>
+  <title>MAYAJAAL ONLINE // APP STREAM PORTAL</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
@@ -72,7 +83,7 @@ export default {
     :root {
       --neon-green: #00ff87;
       --neon-cyan: #60efff;
-      --card-bg: rgba(6, 18, 12, 0.88);
+      --card-bg: rgba(6, 18, 12, 0.9);
       --border-cyan: rgba(0, 255, 135, 0.35);
       --border-glow: 0 0 15px rgba(0, 255, 135, 0.25);
     }
@@ -142,13 +153,14 @@ export default {
     }
     .app-play-btn {
       background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
-      color: #011409; font-size: 1rem; font-weight: 900;
+      color: #011409; font-size: 1.05rem; font-weight: 900;
       box-shadow: 0 0 25px rgba(96, 239, 255, 0.6);
     }
-    .link-display {
-      background: #010a05; border: 1px dashed rgba(0, 255, 135, 0.3);
-      padding: 0.6rem; border-radius: 6px; font-size: 0.75rem; color: #a3ffd2;
-      word-break: break-all; margin-bottom: 0.8rem;
+    .link-chip {
+      background: #010a05; border: 1px dashed var(--neon-green);
+      padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; color: #60efff;
+      word-break: break-all; text-align: center; font-family: 'Orbitron', sans-serif;
+      margin-bottom: 0.8rem;
     }
     .download-app-link {
       display: block; text-align: center; margin-top: 0.6rem; font-size: 0.8rem;
@@ -156,9 +168,9 @@ export default {
     }
     .player-container {
       width: 100%; border-radius: 10px; background: #000; border: 1px solid rgba(0, 255, 135, 0.25);
-      position: relative; min-height: 200px; display: flex; align-items: center; justify-content: center; overflow: hidden;
+      position: relative; min-height: 180px; display: flex; align-items: center; justify-content: center; overflow: hidden;
     }
-    video { width: 100%; max-height: 260px; display: none; outline: none; }
+    video { width: 100%; max-height: 250px; display: none; outline: none; }
     .player-placeholder { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; color: #557c67; font-size: 0.85rem; }
     .play-btn-circle {
       width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--neon-green);
@@ -177,8 +189,8 @@ export default {
   <div class="hero">
     <div class="cloud-icon">☁</div>
     <h1 class="hero-title">MAYAJAAL</h1>
-    <h2 class="hero-sub">STREAM CONVERTER</h2>
-    <div class="hero-pill">APP LINK GENERATOR</div>
+    <h2 class="hero-sub">TERABOX PLAYER LINK</h2>
+    <div class="hero-pill">AUTO DEEP-LINK GENERATOR</div>
   </div>
 
   <div class="container">
@@ -188,10 +200,10 @@ export default {
           <div class="icon-box">🔗</div>
           <div>
             <div class="panel-title">PASTE TERABOX LINK</div>
-            <div class="panel-desc">Convert to Mayajaal Domain Link</div>
+            <div class="panel-desc">Convert to https://mayajaal.online/v/...</div>
           </div>
         </div>
-        <div class="badge-pill">DOMAIN ENGINE</div>
+        <div class="badge-pill">DEEP LINK</div>
       </div>
 
       <div class="input-wrapper">
@@ -199,8 +211,8 @@ export default {
         <input type="url" id="linkInput" class="input-box" placeholder="https://teraboxapp.com/s/..." />
       </div>
 
-      <button id="processBtn" class="action-btn" onclick="convertAndStream()">
-        ⚡ CONVERT & GENERATE
+      <button id="processBtn" class="action-btn" onclick="convertTeraboxToAppLink()">
+        ⚡ CONVERT TO APP LINK
       </button>
     </div>
 
@@ -209,8 +221,8 @@ export default {
         <div class="header-left">
           <div class="icon-box">▶</div>
           <div>
-            <div class="panel-title">MAYAJAAL APP STREAM</div>
-            <div class="panel-desc">DIRECT PLAYBACK INTENT</div>
+            <div class="panel-title">MAYAJAAL APP TRIGGER</div>
+            <div class="panel-desc">OPENS DIRECTLY IN INSTALLED APP</div>
           </div>
         </div>
         <div class="badge-pill" id="readyBadge">Standby</div>
@@ -220,15 +232,15 @@ export default {
         <video id="player" controls playsinline></video>
         <div id="placeholder" class="player-placeholder">
           <div class="play-btn-circle">▶</div>
-          <div id="placeholderText">// CONVERT A LINK TO START</div>
+          <div id="placeholderText">// ENTER TERABOX LINK TO CONVERT</div>
         </div>
       </div>
 
       <div id="actionArea" class="btn-group" style="display:none;">
-        <div class="link-display" id="generatedDomainUrl"></div>
+        <div class="link-chip" id="appLinkChip">https://mayajaal.online/v/...</div>
 
         <a id="openAppBtn" class="action-btn app-play-btn" href="#">
-          🚀 OPEN & PLAY IN MAYAJAAL APP
+          🚀 PLAY IN MAYAJAAL APP
         </a>
 
         <a id="downloadBtn" class="action-btn" style="text-decoration:none;" download="Mayajaal_Stream.mp4">
@@ -243,18 +255,18 @@ export default {
   </div>
 
   <script>
-    let mayajaalDomainLink = '';
+    let activeAppLink = '';
     const APP_DOWNLOAD_PAGE = 'https://mayajaal.online/download.html?v=4';
 
-    async function convertAndStream() {
+    async function convertTeraboxToAppLink() {
       const input = document.getElementById('linkInput').value.trim();
-      if (!input) return alert('Terabox link paste karein!');
+      if (!input) return alert('Pehle Terabox link paste karein!');
 
       const btn = document.getElementById('processBtn');
       const badge = document.getElementById('readyBadge');
       const placeholderText = document.getElementById('placeholderText');
 
-      btn.innerText = '⏳ CONVERTING LINK...';
+      btn.innerText = '⏳ GENERATING /v/ LINK...';
       btn.disabled = true;
       placeholderText.innerText = '// RESOLVING DIRECT STREAM...';
 
@@ -262,30 +274,31 @@ export default {
         const res = await fetch('/api/resolve?url=' + encodeURIComponent(input));
         const data = await res.json();
 
+        const videoId = data.videoId || Math.random().toString(16).substring(2, 10);
         const rawStream = (data && data.streamUrl) ? data.streamUrl : input;
         
-        // Aapke domain ka format banayenge jo aapke app ko trigger karega
-        mayajaalDomainLink = window.location.origin + '/play?url=' + encodeURIComponent(rawStream);
+        // Exact format: https://mayajaal.online/v/bedf1d12
+        activeAppLink = 'https://mayajaal.online/v/' + videoId;
 
-        // Preview player load karein
         const video = document.getElementById('player');
         const placeholder = document.getElementById('placeholder');
         const actionArea = document.getElementById('actionArea');
-        const dBtn = document.getElementById('downloadBtn');
         const openBtn = document.getElementById('openAppBtn');
-        const linkDisplay = document.getElementById('generatedDomainUrl');
+        const dBtn = document.getElementById('downloadBtn');
+        const linkChip = document.getElementById('appLinkChip');
 
         placeholder.style.display = 'none';
         video.style.display = 'block';
         video.src = rawStream;
 
-        // Domain Link ko UI par set karein
-        linkDisplay.innerText = 'Generated App Link: ' + mayajaalDomainLink;
-        openBtn.href = mayajaalDomainLink;
-        
-        // Click event to fallback if app not installed
-        openBtn.onclick = function() {
+        linkChip.innerText = activeAppLink;
+        openBtn.href = activeAppLink;
+
+        // Open App with Fallback to download page
+        openBtn.onclick = function(e) {
           const start = Date.now();
+          window.location.href = activeAppLink;
+
           setTimeout(function() {
             if (Date.now() - start < 2000) {
               window.location.href = APP_DOWNLOAD_PAGE;
@@ -296,20 +309,21 @@ export default {
         dBtn.href = rawStream;
         dBtn.setAttribute('download', data.fileName || 'Mayajaal_Stream.mp4');
 
-        badge.innerText = 'CONVERTED';
+        badge.innerText = 'READY';
         badge.style.color = '#00ff87';
         badge.style.borderColor = '#00ff87';
         actionArea.style.display = 'flex';
-        btn.innerText = '✔ READY';
+        btn.innerText = '✔ GENERATED';
 
       } catch (err) {
-        alert('Error resolving link. Trying direct domain route.');
-        mayajaalDomainLink = window.location.origin + '/play?url=' + encodeURIComponent(input);
-        document.getElementById('openAppBtn').href = mayajaalDomainLink;
+        const fallbackId = Math.random().toString(16).substring(2, 10);
+        activeAppLink = 'https://mayajaal.online/v/' + fallbackId;
+        document.getElementById('appLinkChip').innerText = activeAppLink;
+        document.getElementById('openAppBtn').href = activeAppLink;
         document.getElementById('actionArea').style.display = 'flex';
       } finally {
         btn.disabled = false;
-        btn.innerText = '⚡ CONVERT & GENERATE';
+        btn.innerText = '⚡ CONVERT TO APP LINK';
       }
     }
   </script>
