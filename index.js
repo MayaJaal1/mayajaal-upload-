@@ -1,11 +1,61 @@
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+
+    // Terabox link resolution API endpoint
+    if (url.pathname === '/api/resolve') {
+      const targetUrl = url.searchParams.get('url');
+      if (!targetUrl) {
+        return new Response(JSON.stringify({ error: 'No URL provided' }), { status: 400 });
+      }
+
+      try {
+        // Terabox Resolver Engine
+        const apiUrl = `https://terabox-api.graydeveloper.com/api?url=${encodeURIComponent(targetUrl)}`;
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+
+        let streamUrl = '';
+        let fileName = 'Mayajaal_Stream.mp4';
+
+        if (data && data.status === 'success' && data.data) {
+          streamUrl = data.data.downloadUrl || data.data.dlink || data.data.fastDownloadUrl || '';
+          fileName = data.data.filename || fileName;
+        } else if (data && data.dlink) {
+          streamUrl = data.dlink;
+          fileName = data.file_name || fileName;
+        }
+
+        if (!streamUrl) {
+          // Fallback direct url pass
+          streamUrl = targetUrl;
+        }
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          streamUrl: streamUrl, 
+          fileName: fileName 
+        }), {
+          headers: { 'content-type': 'application/json' }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ 
+          success: true, 
+          streamUrl: targetUrl, 
+          fileName: 'Mayajaal_Stream.mp4' 
+        }), {
+          headers: { 'content-type': 'application/json' }
+        });
+      }
+    }
+
+    // Main Web Interface
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MAYAJAAL ONLINE // OFFICIAL BOT</title>
+  <title>MAYAJAAL ONLINE // TERABOX STREAM ENGINE</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
@@ -13,7 +63,7 @@ export default {
     :root {
       --neon-green: #00ff87;
       --neon-cyan: #60efff;
-      --card-bg: rgba(6, 18, 12, 0.85);
+      --card-bg: rgba(6, 18, 12, 0.88);
       --border-cyan: rgba(0, 255, 135, 0.35);
       --border-glow: 0 0 15px rgba(0, 255, 135, 0.25);
     }
@@ -51,7 +101,6 @@ export default {
       font-family: 'Orbitron', sans-serif; font-size: 0.78rem; font-weight: 700; letter-spacing: 2px;
       color: var(--neon-green); box-shadow: 0 0 12px rgba(0, 255, 135, 0.25);
     }
-    .hero-tags { margin-top: 0.6rem; font-size: 0.8rem; letter-spacing: 3px; color: #79a891; font-weight: 600; }
     .container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 1.4rem; }
     .panel {
       background: var(--card-bg); border: 1px solid var(--border-cyan); box-shadow: var(--border-glow);
@@ -70,15 +119,6 @@ export default {
       font-size: 0.68rem; font-family: 'Orbitron', sans-serif; padding: 0.25rem 0.6rem;
       border-radius: 12px; border: 1px solid var(--neon-green); color: var(--neon-green); background: rgba(0, 255, 135, 0.1);
     }
-    .tab-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem; }
-    .tab-btn {
-      background: rgba(0, 20, 10, 0.6); border: 1px solid rgba(0, 255, 135, 0.25); color: #8bb39c;
-      padding: 0.7rem; border-radius: 8px; font-family: 'Rajdhani', sans-serif; font-size: 0.95rem;
-      font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    }
-    .tab-btn.active {
-      background: var(--neon-green); color: #03140a; border-color: var(--neon-green); box-shadow: 0 0 15px rgba(0, 255, 135, 0.5);
-    }
     .input-wrapper { position: relative; margin-bottom: 1rem; }
     .input-box {
       width: 100%; background: #020d07; border: 1px solid rgba(0, 255, 135, 0.35);
@@ -88,16 +128,18 @@ export default {
     .action-btn {
       width: 100%; background: var(--neon-green); color: #020f06; border: none; border-radius: 8px;
       padding: 0.9rem; font-family: 'Orbitron', sans-serif; font-size: 0.95rem; font-weight: 900;
-      letter-spacing: 2px; cursor: pointer; box-shadow: 0 0 20px rgba(0, 255, 135, 0.4);
-      display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+      letter-spacing: 1.5px; cursor: pointer; box-shadow: 0 0 20px rgba(0, 255, 135, 0.4);
+      display: flex; align-items: center; justify-content: center; gap: 0.6rem; text-decoration: none;
     }
-    .feature-grid {
-      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-top: 1.2rem;
-      border-top: 1px solid rgba(0, 255, 135, 0.12); padding-top: 1rem; text-align: center;
+    .app-play-btn {
+      background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
+      color: #011409; margin-top: 0.8rem; font-size: 1rem; font-weight: 900;
+      box-shadow: 0 0 25px rgba(96, 239, 255, 0.6);
     }
-    .feature-item h4 { font-size: 0.75rem; font-weight: 700; color: #fff; margin-top: 0.2rem; }
-    .feature-item p { font-size: 0.65rem; color: #6d9681; }
-    .feature-item span { font-size: 1rem; color: var(--neon-green); }
+    .download-app-link {
+      display: block; text-align: center; margin-top: 0.6rem; font-size: 0.8rem;
+      color: var(--neon-cyan); text-decoration: underline; cursor: pointer;
+    }
     .player-container {
       width: 100%; border-radius: 10px; background: #000; border: 1px solid rgba(0, 255, 135, 0.25);
       position: relative; min-height: 220px; display: flex; align-items: center; justify-content: center; overflow: hidden;
@@ -109,28 +151,20 @@ export default {
       display: flex; align-items: center; justify-content: center; color: var(--neon-green);
       font-size: 1.4rem; box-shadow: 0 0 15px rgba(0, 255, 135, 0.3);
     }
-    footer {
-      width: 100%; max-width: 480px; margin-top: 1.5rem; border-top: 1px solid rgba(0, 255, 135, 0.15);
-      padding-top: 1rem; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; text-align: center; gap: 0.4rem;
-    }
-    .footer-col span { color: var(--neon-green); font-size: 1rem; }
-    .footer-col h5 { font-size: 0.72rem; color: #fff; margin-top: 0.2rem; }
-    .footer-col p { font-size: 0.62rem; color: #6d9681; }
-    .copyright { margin-top: 1.2rem; font-size: 0.7rem; letter-spacing: 2px; color: #4b735f; text-align: center; }
+    .btn-group { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1rem; }
   </style>
 </head>
 <body>
   <nav>
     <div class="brand">⚡ MAYAJAAL<span>ONLINE</span></div>
-    <div class="nav-status"><div class="status-dot"></div>Online</div>
+    <div class="nav-status"><div class="status-dot"></div>Terabox Engine</div>
   </nav>
 
   <div class="hero">
     <div class="cloud-icon">☁</div>
     <h1 class="hero-title">MAYAJAAL</h1>
-    <h2 class="hero-sub">OFFICIAL BOT</h2>
-    <div class="hero-pill">CLOUDFLARE DIRECT ENGINE</div>
-    <div class="hero-tags">FAST &nbsp;•&nbsp; SECURE &nbsp;•&nbsp; UNLIMITED</div>
+    <h2 class="hero-sub">TERABOX STREAMER</h2>
+    <div class="hero-pill">AUTO INTENT // DIRECT APP PLAY</div>
   </div>
 
   <div class="container">
@@ -139,39 +173,21 @@ export default {
         <div class="header-left">
           <div class="icon-box">🔗</div>
           <div>
-            <div class="panel-title">TERMINAL INPUT</div>
-            <div class="panel-desc">Paste link or select file to stream</div>
+            <div class="panel-title">TERABOX URL INPUT</div>
+            <div class="panel-desc">Paste link to extract & stream</div>
           </div>
         </div>
-        <div class="badge-pill">CLOUDFLARE DIRECT</div>
+        <div class="badge-pill">FAST API</div>
       </div>
 
-      <div class="tab-row">
-        <button id="tabLocal" class="tab-btn" onclick="setMode('local')">📁 LOCAL FILE</button>
-        <button id="tabRemote" class="tab-btn active" onclick="setMode('remote')">🔗 REMOTE LINK</button>
+      <div class="input-wrapper">
+        <span class="input-icon">🔗</span>
+        <input type="url" id="linkInput" class="input-box" placeholder="https://teraboxapp.com/s/..." />
       </div>
 
-      <div id="formRemote">
-        <div class="input-wrapper">
-          <span class="input-icon">🔗</span>
-          <input type="url" id="remoteUrl" class="input-box" placeholder="https://domain.com/video.mp4" />
-        </div>
-        <button class="action-btn" onclick="handleStreamUrl()">▶ STREAM URL</button>
-      </div>
-
-      <div id="formLocal" style="display:none;">
-        <div class="input-wrapper">
-          <span class="input-icon">📁</span>
-          <input type="file" id="localFile" class="input-box" accept="video/*,audio/*" />
-        </div>
-        <button class="action-btn" onclick="handleUploadFile()">⚡ LOAD & PLAY</button>
-      </div>
-
-      <div class="feature-grid">
-        <div class="feature-item"><span>⚡</span><h4>Direct Stream</h4><p>No Redirect</p></div>
-        <div class="feature-item"><span>🛡</span><h4>Secure Link</h4><p>Cloudflare Powered</p></div>
-        <div class="feature-item"><span>📶</span><h4>High Speed</h4><p>Global CDN</p></div>
-      </div>
+      <button id="processBtn" class="action-btn" onclick="processTerabox()">
+        ⚡ EXTRACT & STREAM
+      </button>
     </div>
 
     <div class="panel">
@@ -179,81 +195,119 @@ export default {
         <div class="header-left">
           <div class="icon-box">▶</div>
           <div>
-            <div class="panel-title">VIDEO PLAYER</div>
-            <div class="panel-desc">STREAMING FROM CLOUDFLARE DIRECTLY</div>
+            <div class="panel-title">STREAM CONTROLLER</div>
+            <div class="panel-desc">MAYAJAAL NATIVE INTEGRATION</div>
           </div>
         </div>
-        <div class="badge-pill" id="readyBadge">Ready</div>
+        <div class="badge-pill" id="readyBadge">Standby</div>
       </div>
 
       <div class="player-container">
         <video id="player" controls playsinline></video>
         <div id="placeholder" class="player-placeholder">
           <div class="play-btn-circle">▶</div>
-          <div>// NO SIGNAL LOADED</div>
+          <div id="placeholderText">// ENTER TERABOX LINK ABOVE</div>
         </div>
       </div>
 
-      <a id="downloadBtn" class="action-btn" style="display:none; margin-top:1rem; text-decoration:none;" download="video.mp4">
-        ⬇ DOWNLOAD FILE
-      </a>
+      <div id="actionArea" class="btn-group" style="display:none;">
+        <button id="openAppBtn" class="action-btn app-play-btn" onclick="openInMayajaalApp()">
+          🚀 PLAY IN MAYAJAAL APP
+        </button>
+
+        <a id="downloadBtn" class="action-btn" style="text-decoration:none;" download="Mayajaal_Stream.mp4">
+          ⬇ DIRECT DOWNLOAD
+        </a>
+
+        <a href="https://mayajaal.online/download.html?v=4" class="download-app-link" target="_blank">
+          Don't have the App? Download Mayajaal App (v=4)
+        </a>
+      </div>
     </div>
   </div>
 
-  <footer>
-    <div class="footer-col"><span>🛡</span><h5>100% SECURE</h5><p>Your Links, Priority</p></div>
-    <div class="footer-col"><span>☁</span><h5>CLOUDFLARE CDN</h5><p>Global Streaming</p></div>
-    <div class="footer-col"><span>⚡</span><h5>HIGH QUALITY</h5><p>HD | FHD | 4K</p></div>
-    <div class="footer-col"><span>♾</span><h5>UNLIMITED</h5><p>No Size Limit</p></div>
-  </footer>
-
-  <div class="copyright">• POWERED BY MAYAJAAL •</div>
-
   <script>
-    function setMode(mode) {
-      const isRemote = mode === 'remote';
-      document.getElementById('formRemote').style.display = isRemote ? 'block' : 'none';
-      document.getElementById('formLocal').style.display = isRemote ? 'none' : 'block';
-      document.getElementById('tabRemote').className = 'tab-btn ' + (isRemote ? 'active' : '');
-      document.getElementById('tabLocal').className = 'tab-btn ' + (isRemote ? '' : 'active');
+    let activeStreamUrl = '';
+    const APP_DOWNLOAD_PAGE = 'https://mayajaal.online/download.html?v=4';
+
+    async function processTerabox() {
+      const input = document.getElementById('linkInput').value.trim();
+      if (!input) return alert('Please paste a valid link!');
+
+      const btn = document.getElementById('processBtn');
+      const badge = document.getElementById('readyBadge');
+      const placeholderText = document.getElementById('placeholderText');
+
+      btn.innerText = '⏳ EXTRACTING STREAM...';
+      btn.disabled = true;
+      placeholderText.innerText = '// CONTACTING SERVER ENGINE...';
+
+      try {
+        const res = await fetch('/api/resolve?url=' + encodeURIComponent(input));
+        const data = await res.json();
+
+        if (data.streamUrl) {
+          activeStreamUrl = data.streamUrl;
+          startPlayer(activeStreamUrl, data.fileName || 'Mayajaal_Stream.mp4');
+          btn.innerText = '✔ READY';
+        } else {
+          alert('Could not extract direct stream. Using original link.');
+          activeStreamUrl = input;
+          startPlayer(activeStreamUrl, 'Mayajaal_Stream.mp4');
+        }
+      } catch (err) {
+        activeStreamUrl = input;
+        startPlayer(activeStreamUrl, 'Mayajaal_Stream.mp4');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⚡ EXTRACT & STREAM';
+      }
     }
-    function handleStreamUrl() {
-      const url = document.getElementById('remoteUrl').value.trim();
-      if (!url) return alert('Enter a valid direct video link!');
-      startPlayer(url, 'STREAM_LINK');
-    }
-    function handleUploadFile() {
-      const file = document.getElementById('localFile').files[0];
-      if (!file) return alert('Select a video file first!');
-      const objectUrl = URL.createObjectURL(file);
-      startPlayer(objectUrl, file.name);
-    }
-    function startPlayer(source, name) {
+
+    function startPlayer(url, name) {
       const video = document.getElementById('player');
       const placeholder = document.getElementById('placeholder');
+      const actionArea = document.getElementById('actionArea');
       const dBtn = document.getElementById('downloadBtn');
       const badge = document.getElementById('readyBadge');
 
       placeholder.style.display = 'none';
       video.style.display = 'block';
-      video.src = source;
-      video.play().catch(e => console.log('Autoplay blocked'));
+      video.src = url;
+      video.play().catch(() => console.log('Autoplay deferred'));
 
-      dBtn.style.display = 'flex';
-      dBtn.href = source;
+      dBtn.href = url;
       dBtn.setAttribute('download', name);
-      badge.innerText = 'PLAYING';
-      badge.style.color = '#60efff';
-      badge.style.borderColor = '#60efff';
+      badge.innerText = 'ACTIVE';
+      badge.style.color = '#00ff87';
+      badge.style.borderColor = '#00ff87';
+      actionArea.style.display = 'flex';
+    }
+
+    function openInMayajaalApp() {
+      if (!activeStreamUrl) return alert('Stream URL not ready yet!');
+
+      const now = Date.now();
+      // Android Generic Video Intent - opens installed Mayajaal player app
+      const intentUrl = 'intent:' + activeStreamUrl + '#Intent;action=android.intent.action.VIEW;type=video/*;end';
+
+      window.location.href = intentUrl;
+
+      // Agar 1.5 seconds mein app open nahi hua, toh user ko download page par bhejein
+      setTimeout(function() {
+        if (Date.now() - now < 2000) {
+          window.location.href = APP_DOWNLOAD_PAGE;
+        }
+      }, 1500);
     }
   </script>
 </body>
 </html>`;
 
     return new Response(html, {
-      headers: { 
-        "content-type": "text/html;charset=UTF-8",
-        "cache-control": "no-cache"
+      headers: {
+        'content-type': 'text/html;charset=UTF-8',
+        'cache-control': 'no-cache'
       }
     });
   }
